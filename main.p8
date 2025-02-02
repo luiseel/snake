@@ -7,11 +7,14 @@ sy = 0
 
 frame_counter = 0
 move_delay = 5
+game_over = false
+did_achieve_sound = false
 
 score = 0
 
 function _init()
 	snake = {
+		allow_move = true,
 		direction = 0,
 		speed = size,
 		parts = {
@@ -41,67 +44,104 @@ function update_head(head)
 	end
 end
 
-function check_collision()
-	local head = snake.parts[1]
-	return head.x == food.x and head.y == food.y
+function check_collision(a, b)
+	return a.x == b.x and a.y == b.y
 end
 
 function _update()
-	frame_counter += 1
+	if not game_over then
+		frame_counter += 1
 
-	local new_dir = snake.direction
-	if btn(3) and snake.direction ~= 2 then new_dir = 3 end
-	if btn(2) and snake.direction ~= 3 then new_dir = 2 end
-	if btn(1) and snake.direction ~= 0 then new_dir = 1 end
-	if btn(0) and snake.direction ~= 1 then new_dir = 0 end
-	snake.direction = new_dir
+		local new_dir = snake.direction
+		if btn(0) and snake.direction ~= 1 and snake.allow_move then
+			new_dir = 0
+			snake.allow_move = false
+		end
+		if btn(1) and snake.direction ~= 0 and snake.allow_move then
+			new_dir = 1
+			snake.allow_move = false
+		end
+		if btn(2) and snake.direction ~= 3 and snake.allow_move then
+			new_dir = 2
+			snake.allow_move = false
+		end
+		if btn(3) and snake.direction ~= 2 and snake.allow_move then
+			new_dir = 3
+			snake.allow_move = false
+		end
+		snake.direction = new_dir
 
-	if frame_counter >= move_delay then
-		frame_counter = 0
+		if frame_counter >= move_delay then
+			frame_counter = 0
 
-		local ox = 0
-		local oy = 0
-		for i = 1, #snake.parts do
-			local part = snake.parts[i]
-			if i == 1 then
-				ox = part.x
-				oy = part.y
-				update_head(part)
-			else
-				local x = part.x
-				local y = part.y
-				part.x = ox
-				part.y = oy
-				ox = x
-				oy = y
+			local ox = 0
+			local oy = 0
+			for i = 1, #snake.parts do
+				local part = snake.parts[i]
+				if i == 1 then
+					ox = part.x
+					oy = part.y
+					update_head(part)
+					snake.allow_move = true
+				else
+					local x = part.x
+					local y = part.y
+					part.x = ox
+					part.y = oy
+					ox = x
+					oy = y
+				end
 			end
 		end
-	end
 
-	if check_collision() then
-		score += 1;
-		food.x = flr(rnd(32)) * size
-		food.y = flr(rnd(32)) * size
+		local head = snake.parts[1]
 
-		local last_part = snake.parts[#snake.parts]
-		local new_part = {
-			x = last_part.x,
-			y = last_part.y
-		}
-		add(snake.parts, new_part)
-		sfx(0)
+		if check_collision(head, food) then
+			score += 1;
+			food.x = flr(rnd(32)) * size
+			food.y = flr(rnd(32)) * size
+
+			local last_part = snake.parts[#snake.parts]
+			local new_part = {
+				x = last_part.x,
+				y = last_part.y
+			}
+			add(snake.parts, new_part)
+			if score % 5 ~= 0 then
+				sfx(0)
+			end
+		end
+
+		for i = 2, #snake.parts do
+			local part = snake.parts[i]
+			if check_collision(head, part) then
+				game_over = true
+				break
+			end
+		end
+
+		if score ~= 0 and score % 5 == 0 and not did_achieve_sound then
+			sfx(1)
+			did_achieve_sound = true
+		elseif score % 5 ~= 0 then
+			did_achieve_sound = false
+		end
+
 	end
 end
 
 function _draw()
 	cls()
-	sspr(18, 2, 4, 4, food.x, food.y)
-	for i = 1, #snake.parts do
-		local part = snake.parts[i]
-		sspr(10, 2, 4, 4, part.x, part.y)
+	if game_over then
+		print("game over", 12 * size, 16 * size)
+	else
+		sspr(18, 2, 4, 4, food.x, food.y)
+		for i = 1, #snake.parts do
+			local part = snake.parts[i]
+			sspr(10, 2, 4, 4, part.x, part.y)
+		end
+		print("score: "..score, 2 * size, 2 * size)
 	end
-	cursor(2 * size, 2 * size)
-	print("score: "..score)
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -111,4 +151,8 @@ __gfx__
 000770000077770000cccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 007007000077770000cccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
-0001000000000000000505005050050500505005050050500505005050050500505007050090500a0500a0500a0500a0500a05000000000000000000000000000000000000000000000000000000000000000000
+0001000000000000000505005050050500505005050050500505005050050500505007050090500a0500a0500a050030000000000000000000000000000000000000000000000000000000000000000000000000
+000100000750000150021500415007150091500b1500c1500e1501015008500075000550002500021000110001100001000010009100091000a1000b1000c1000d1000e1000f1001110013100000000000000000
+__music__
+04 41424344
+
