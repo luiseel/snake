@@ -8,7 +8,6 @@ sy = 0
 frame_counter = 0
 move_delay = 5
 game_over = false
-did_achieve_sound = false
 
 score = 0
 
@@ -109,6 +108,8 @@ function _update()
 			add(snake.parts, new_part)
 			if score % 5 ~= 0 then
 				sfx(0)
+			else
+				sfx(1)
 			end
 		end
 
@@ -119,14 +120,6 @@ function _update()
 				break
 			end
 		end
-
-		if score ~= 0 and score % 5 == 0 and not did_achieve_sound then
-			sfx(1)
-			did_achieve_sound = true
-		elseif score % 5 ~= 0 then
-			did_achieve_sound = false
-		end
-
 	end
 end
 
