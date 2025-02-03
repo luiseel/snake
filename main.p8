@@ -6,7 +6,7 @@ sx = 112
 sy = 0
 
 frame_counter = 0
-move_delay = 5
+move_delay = 3
 game_over = false
 
 score = 0
@@ -29,22 +29,42 @@ function _init()
 end
 
 function update_head(head)
-	if snake.direction == 3 then
-		head.y += snake.speed
-	end
-	if snake.direction == 2 then
-		head.y -= snake.speed
+	if snake.direction == 0 then
+		head.x -= snake.speed
 	end
 	if snake.direction == 1 then
 		head.x += snake.speed
 	end
-	if snake.direction == 0 then
-		head.x -= snake.speed
+	if snake.direction == 2 then
+		head.y -= snake.speed
+	end
+	if snake.direction == 3 then
+		head.y += snake.speed
 	end
 end
 
 function check_collision(a, b)
 	return a.x == b.x and a.y == b.y
+end
+
+function every(table, func)
+	local result = false
+	for i = 1, #table do
+		result = result and func(table[i])
+	end
+	return result
+end
+
+function spawn_food()
+	local x, y = flr(rnd(32)) * size, flr(rnd(32)) * size
+	local is_properly_spawn = true
+	repeat
+		is_properly_spawn = every(snake.parts, function (part)
+			return part.x == x and part.y == y
+		end)
+	until not is_properly_spawn
+	food.x = x
+	food.y = y
 end
 
 function _update()
@@ -95,10 +115,13 @@ function _update()
 
 		local head = snake.parts[1]
 
+		if head.x < 0 or head.x > 127 or head.y < 0 or head.y > 127 then
+			game_over = true
+		end
+
 		if check_collision(head, food) then
-			score += 1;
-			food.x = flr(rnd(32)) * size
-			food.y = flr(rnd(32)) * size
+			score += 1
+			spawn_food()
 
 			local last_part = snake.parts[#snake.parts]
 			local new_part = {
@@ -128,6 +151,10 @@ function _draw()
 	if game_over then
 		print("game over", 12 * size, 16 * size)
 	else
+		line(0, 0, 127, 0, 7)
+		line(0, 0, 0, 127, 7)
+		line(0, 127, 127, 127, 7)
+		line(127, 0, 127, 127, 7)
 		sspr(18, 2, 4, 4, food.x, food.y)
 		for i = 1, #snake.parts do
 			local part = snake.parts[i]
