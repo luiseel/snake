@@ -13,6 +13,7 @@ score = 0
 
 function _init()
 	snake = {
+		will_eat = false,
 		allow_move = true,
 		direction = 0,
 		speed = size,
@@ -47,30 +48,40 @@ function check_collision(a, b)
 	return a.x == b.x and a.y == b.y
 end
 
-function every(table, func)
-	for i = 1, #table do
-		if not func(table[i]) then
-			return false
-		end
-	end
-	return true
-end
-
 function spawn_food()
-	local x = flr(rnd(31))
-	local y = flr(rnd(31))
-	if x == 0 then x += size end
-	if y == 0 then y += size end
-	x *= size
-	y *= size
-	local do_not_collide = true
+	local do_collide = false
+	local x = 0
+	local y = 0
 	repeat
-		do_not_collide = every(snake.parts, function (part)
-			return part.x == x and part.y == y
-		end)
-	until not do_not_collide
+		x = flr(rnd(31))
+		y = flr(rnd(31))
+		if x == 0 then x += size end
+		if y == 0 then y += size end
+		x *= size
+		y *= size
+		for i = 1, #snake.parts do
+			local part = snake.parts[i]
+			if part.x == x and part.y == y then
+				do_collide = true
+				break
+			end
+		end
+	until not do_collide
 	food.x = x
 	food.y = y
+end
+
+function will_eat_food(snake)
+	local head = snake.parts[1]
+	local food_is_left = snake.direction == 0 and head.x - size == food.x and head.y == food.y
+	local food_is_right = snake.direction == 1 and head.x + size == food.x and head.y == food.y
+	local food_is_up = snake.direction == 2 and head.x == food.x and head.y - size == food.y
+	local food_is_down = snake.direction == 3 and head.x == food.x and head.y + size == food.y
+	if food_is_left or food_is_right or food_is_up or food_is_down then
+		snake.will_eat = true
+	else
+		snake.will_eat = false
+	end
 end
 
 function _update()
@@ -149,6 +160,8 @@ function _update()
 				break
 			end
 		end
+
+		will_eat_food(snake)
 	end
 end
 
@@ -157,35 +170,51 @@ function _draw()
 	if game_over then
 		print("game over", 12 * size, 16 * size)
 	else
-		line(0, 0, 127, 0, 7)
-		line(0, 0, 0, 127, 7)
-		line(0, 127, 127, 127, 7)
-		line(127, 0, 127, 127, 7)
+		line(0, 0, 127, 0, 5)
+		line(0, 0, 0, 127, 5)
+		line(0, 127, 127, 127, 5)
+		line(127, 0, 127, 127, 5)
 
 		local offset = size - 1
-		line(offset, offset, 127 - offset, offset, 7)
-		line(offset, offset, offset, 127 - offset, 7)
-		line(offset, 127 - offset, 127 - offset, 127 - offset, 7)
-		line(127 - offset, offset, 127 - offset, 127 - offset, 7)
+		line(offset, offset, 127 - offset, offset, 5)
+		line(offset, offset, offset, 127 - offset, 5)
+		line(offset, 127 - offset, 127 - offset, 127 - offset, 5)
+		line(127 - offset, offset, 127 - offset, 127 - offset, 5)
 
 		sspr(18, 2, 4, 4, food.x, food.y)
 		for i = 1, #snake.parts do
 			local part = snake.parts[i]
-			sspr(10, 2, 4, 4, part.x, part.y)
+			if i == 1 then
+				if snake.direction == 0 or snake.direction == 1 then
+					local spr_start = 26
+					if snake.will_eat then
+						spr_start = 42
+					end
+					sspr(spr_start, 2, 4, 4, part.x, part.y, 4, 4, snake.direction == 1)
+				else
+					local spr_start = 34
+					if snake.will_eat then
+						spr_start = 50
+					end
+					sspr(spr_start, 2, 4, 4, part.x, part.y, 4, 4, false, snake.direction == 2)
+				end
+			else
+				sspr(10, 2, 4, 4, part.x, part.y)
+			end
 		end
-		print("score: "..score, 2 * size, 2 * size)
+		print("score: "..score, 2 * size, 2 * size, 7)
 	end
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0070070000033000000bb00000363000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000003333000084b80008b33300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000003333000088880000b33300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000330000008800000363000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000333300000bb000003b330000333300003b330000333300000000000000000000000000000000000000000000000000000000000000000000000000
+00000000003333000088b80000333300003333000043330000333300000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000333300008888000033330000b33b000043330000b33b00000000000000000000000000000000000000000000000000000000000000000000000000
+000000000033330000088000003b330000333300003b330000344300000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 0001000000000000000505005050050500505005050050500505005050050500505007050090500a0500a0500a050030000000000000000000000000000000000000000000000000000000000000000000000000
 000100000750000150021500415007150091500b1500c1500e1501015008500075000550002500021000110001100001000010009100091000a1000b1000c1000d1000e1000f1001110013100000000000000000
 __music__
-04 41424344
+04 22424344
 
